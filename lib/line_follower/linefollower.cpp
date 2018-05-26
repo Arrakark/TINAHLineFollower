@@ -29,9 +29,9 @@ void linefollower::write_to_LCD(String line1, String line2)
 {
 	LCD->clear();
 	LCD->home();
-	LCD->write(line1);
+	LCD->write(line1.c_str());
 	LCD->setCursor(0, 1);
-	LCD->write(line2);
+	LCD->write(line2.c_str());
 }
 
 void linefollower::follow_line()

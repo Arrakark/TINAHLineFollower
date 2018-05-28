@@ -1,7 +1,7 @@
 #include "linefollower.h"
 
 bool debug = true;
-bool run_motor = false;
+bool run_motor = true;
 int i_sum = 0;
 int d_error_prev = 0;
 
@@ -10,9 +10,9 @@ int d_error_prev = 0;
 #define P_LIMIT 100
 #define D_GAIN 0.0007
 #define D_LIMIT 50
-#define I_GAIN 0.01
-#define I_LIMIT 200
-#define I_SUM_LIMIT 2000
+#define I_GAIN 1
+#define I_LIMIT 100
+#define I_SUM_LIMIT 200
 
 #define TRIM_KNOB PF6
 #define GENERAL_KNOB PF7

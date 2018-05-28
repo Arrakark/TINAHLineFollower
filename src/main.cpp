@@ -7,11 +7,14 @@ void setup(void)
 {
 #include <phys253setup.txt>
   Serial.begin(9600);
-  follower.setup();
+  //follower.setup();
 }
 
 void loop(void)
 {
   follower.follow_line();
   follower.set_trim();
+  //Serial.print(analogRead(PF0));
+  //Serial.print(" ");
+  //Serial.println(analogRead(PF1));
 }

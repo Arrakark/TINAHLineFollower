@@ -1,5 +1,11 @@
 #include "linefollower.h"
 
+bool debug = true;
+int leftSensorPrev = 0;
+int rightSensorPrev = 0;
+int leftSensorCurr = 0;
+int rightSensorCurr = 0;
+
 linefollower::linefollower(LiquidCrystal *passed_crystal, motorClass *passed_motor)
 {
 	LCD = passed_crystal;
@@ -36,8 +42,23 @@ void linefollower::write_to_LCD(String line1, String line2)
 
 void linefollower::follow_line()
 {
-	motor->speed(0, 255 + trim);
-	motor->speed(1, 255 - trim);
+	leftSensorCurr = analogRead(PF0);
+	rightSensorCurr = analogRead(PF1);
+	
+	int difference = leftSensorCurr - rightSensorCurr;
+	difference = map(difference, -200, 200, 255, -255);
+	int motorright = 255 + trim - difference;
+	int motorleft = 255 - trim + difference;
+	motor->speed(0, motorright);
+	motor->speed(1, motorleft);
+
+	if(debug){
+		Serial.print("trim: " + String(trim));
+		Serial.println(" difference: " + String(difference));
+		//Serial.println("mr: " + String(motorright));
+		//Serial.println("ml: " + String(motorleft));
+	}
+
 }
 
 void linefollower::set_trim()

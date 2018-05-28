@@ -12,8 +12,10 @@ void setup(void)
 
 void loop(void)
 {
-  follower.follow_line();
-  follower.set_trim();
+  //follower.follow_line();
+  //follower.set_trim();
+  motor.speed(0,255);
+  motor.speed(1,255);
   //Serial.print(analogRead(PF0));
   //Serial.print(" ");
   //Serial.println(analogRead(PF1));

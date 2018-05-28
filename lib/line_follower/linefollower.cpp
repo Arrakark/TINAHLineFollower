@@ -44,21 +44,46 @@ void linefollower::follow_line()
 {
 	leftSensorCurr = analogRead(PF0);
 	rightSensorCurr = analogRead(PF1);
-	
+
 	int difference = leftSensorCurr - rightSensorCurr;
 	difference = map(difference, -200, 200, 255, -255);
-	int motorright = 255 + trim - difference;
-	int motorleft = 255 - trim + difference;
-	motor->speed(0, motorright);
-	motor->speed(1, motorleft);
 
-	if(debug){
+	//if at least one is on black tape
+	if (leftSensorCurr > 500 || rightSensorCurr > 500)
+	{
+		int motorright = 255 + trim - difference;
+		int motorleft = 255 - trim + difference;
+		motor->speed(0, motorright);
+		motor->speed(1, motorleft);
+	}
+	else
+	{
+		//check previous value to see which sensor was last on the line
+		if (leftSensorPrev > 500)
+		{
+			motor->speed(0, 255);
+			motor->speed(1, 0);
+		}
+		else if (rightSensorPrev > 500)
+		{
+			motor->speed(0, 0);
+			motor->speed(1, 255);
+		}
+		else {
+			motor->speed(0, 0);
+			motor->speed(1, 255);
+		}
+	}
+
+	//if both is on white
+
+	if (debug)
+	{
 		Serial.print("trim: " + String(trim));
 		Serial.println(" difference: " + String(difference));
 		//Serial.println("mr: " + String(motorright));
 		//Serial.println("ml: " + String(motorleft));
 	}
-
 }
 
 void linefollower::set_trim()

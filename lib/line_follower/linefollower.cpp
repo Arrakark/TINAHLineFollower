@@ -6,12 +6,12 @@ int i_sum = 0;
 int d_error_prev = 0;
 
 //
-#define P_GAIN 0.3
-#define P_LIMIT 100
+#define P_GAIN 0.1
+#define P_LIMIT 50
 #define D_GAIN 0.0007
 #define D_LIMIT 50
-#define I_GAIN 1
-#define I_LIMIT 100
+#define I_GAIN 0.1
+#define I_LIMIT 50
 #define I_SUM_LIMIT 200
 
 #define TRIM_KNOB PF6
@@ -74,8 +74,22 @@ void linefollower::follow_line()
 
 	if (run_motor)
 	{
-		motor->speed(RIGHT_MOTOR, (int)(NORMAL_SPEED + error));
-		motor->speed(LEFT_MOTOR, (int)(NORMAL_SPEED - error));
+		if (NORMAL_SPEED + error < 0)
+		{
+			motor->speed(RIGHT_MOTOR, (int)(NORMAL_SPEED + error));
+		}
+		else
+		{
+			motor->speed(RIGHT_MOTOR, (int)(NORMAL_SPEED + error));
+		}
+		if (NORMAL_SPEED - error < 0)
+		{
+			motor->speed(LEFT_MOTOR, (int)(NORMAL_SPEED - error));
+		}
+		else
+		{
+			motor->speed(LEFT_MOTOR, (int)(NORMAL_SPEED - error));
+		}
 	}
 	if (debug)
 	{

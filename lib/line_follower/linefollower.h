@@ -7,7 +7,7 @@
 
 class linefollower
 {
-  public:
+public:
 	//consturctor
 	linefollower(LiquidCrystal *, motorClass *);
 
@@ -20,7 +20,8 @@ class linefollower
 
 	void write_to_LCD(String, String);
 
-  private:
+private:
+	int error_limit(int, int);
 	motorClass *motor;
 	LiquidCrystal *LCD;
 	int trim;

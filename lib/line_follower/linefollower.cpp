@@ -1,10 +1,34 @@
 #include "linefollower.h"
 
 bool debug = true;
-int leftSensorPrev = 0;
-int rightSensorPrev = 0;
-int leftSensorCurr = 0;
-int rightSensorCurr = 0;
+bool run_motor = false;
+int i_sum = 0;
+int d_error_prev = 0;
+
+//
+#define P_GAIN 0.3
+#define P_LIMIT 100
+#define D_GAIN 0.0007
+#define D_LIMIT 50
+#define I_GAIN 0.01
+#define I_LIMIT 200
+#define I_SUM_LIMIT 2000
+
+#define TRIM_KNOB PF6
+#define GENERAL_KNOB PF7
+
+#define RIGHT_SENSOR PF1
+#define RIGHT_MAX 770.0
+#define RIGHT_MIN 19.0
+
+#define LEFT_SENSOR PF0
+#define LEFT_MAX 620.0
+#define LEFT_MIN 17.0
+
+#define RIGHT_MOTOR 1
+#define LEFT_MOTOR 0
+
+#define NORMAL_SPEED 100
 
 linefollower::linefollower(LiquidCrystal *passed_crystal, motorClass *passed_motor)
 {
@@ -14,20 +38,13 @@ linefollower::linefollower(LiquidCrystal *passed_crystal, motorClass *passed_mot
 
 void linefollower::setup()
 {
-	write_to_LCD("LINE FOLLOWER", "SETUP");
-	delay(1000);
-	write_to_LCD("USE KNOB 6", "TO ADJUST TRIM");
-	delay(1000);
-	while (!digitalRead(TRIM_KNOB))
+
+	float right_read = analogRead(RIGHT_SENSOR);
+	float left_read = analogRead(LEFT_SENSOR);
+	if (debug)
 	{
-		write_to_LCD("CURRENT TRIM", String(trim));
-		follow_line();
-		set_trim();
-	}
-	write_to_LCD("ADJUST LEFT", "SENSOR");
-	for (int i = 40; i < 42; i++)
-	{
-		write_to_LCD(String("LSENS: ") + String(), String("SETPNT:") + String());
+		Serial.print("RIGHT_SENSOR: " + String(right_read));
+		Serial.println(" LEFT_SENSOR: " + String(left_read));
 	}
 }
 
@@ -42,52 +59,53 @@ void linefollower::write_to_LCD(String line1, String line2)
 
 void linefollower::follow_line()
 {
-	leftSensorCurr = analogRead(PF0);
-	rightSensorCurr = analogRead(PF1);
+	float right_read = analogRead(RIGHT_SENSOR);
+	float left_read = analogRead(LEFT_SENSOR);
+	right_read = map(right_read, RIGHT_MIN, RIGHT_MAX, 0, 1000);
+	left_read = map(left_read, LEFT_MIN, LEFT_MAX, 0, 1000);
+	float p_error = (left_read - right_read) * P_GAIN;
+	p_error = error_limit(p_error, P_LIMIT);
+	i_sum = error_limit(i_sum + left_read - right_read, I_SUM_LIMIT);
+	float i_error = error_limit(i_sum * I_GAIN, I_LIMIT);
+	float d_error = (left_read - right_read) - d_error_prev;
+	d_error = error_limit(d_error, D_LIMIT);
 
-	int difference = leftSensorCurr - rightSensorCurr;
-	difference = map(difference, -200, 200, 255, -255);
+	float error = p_error + i_error + d_error + trim;
 
-	//if at least one is on black tape
-	if (leftSensorCurr > 500 || rightSensorCurr > 500)
+	if (run_motor)
 	{
-		int motorright = 255 + trim - difference;
-		int motorleft = 255 - trim + difference;
-		motor->speed(0, motorright);
-		motor->speed(1, motorleft);
+		motor->speed(RIGHT_MOTOR, (int)(NORMAL_SPEED + error));
+		motor->speed(LEFT_MOTOR, (int)(NORMAL_SPEED - error));
 	}
-	else
-	{
-		//check previous value to see which sensor was last on the line
-		if (leftSensorPrev > 500)
-		{
-			motor->speed(0, 255);
-			motor->speed(1, 0);
-		}
-		else if (rightSensorPrev > 500)
-		{
-			motor->speed(0, 0);
-			motor->speed(1, 255);
-		}
-		else {
-			motor->speed(0, 0);
-			motor->speed(1, 255);
-		}
-	}
-
-	//if both is on white
-
 	if (debug)
 	{
-		Serial.print("trim: " + String(trim));
-		Serial.println(" difference: " + String(difference));
-		//Serial.println("mr: " + String(motorright));
-		//Serial.println("ml: " + String(motorleft));
+		Serial.print("RIGHT_SENSOR: " + String(right_read));
+		Serial.print(" LEFT_SENSOR: " + String(left_read));
+		Serial.print(" P_ERROR: " + String(p_error));
+		Serial.print(" I_ERROR: " + String(i_error));
+		Serial.print(" D_ERROR: " + String(d_error));
+		Serial.print(" RIGHT_MOTOR: " + String((int)(NORMAL_SPEED + error)));
+		Serial.print(" LEFT_MOTOR: " + String((int)(NORMAL_SPEED - error)));
+		Serial.println(" TRIM: " + String(trim));
 	}
+	d_error_prev = left_read - right_read;
+}
+
+int linefollower::error_limit(int value, int limit)
+{
+	if (value > limit)
+	{
+		return limit;
+	}
+	if (value < -limit)
+	{
+		return -limit;
+	}
+	return value;
 }
 
 void linefollower::set_trim()
 {
-	int readvalue = analogRead(PF6);
+	int readvalue = analogRead(TRIM_KNOB);
 	trim = map(readvalue, 0, 1024, 50, -50);
 }

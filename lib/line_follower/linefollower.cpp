@@ -5,35 +5,55 @@ bool run_motor = true;
 int i_sum = 0;
 int d_error_prev = 0;
 
+CmdMessenger cmdMessenger = CmdMessenger(Serial);
+
+enum
+{
+	GAIN = 1, //GAIN,
+	LIMIT = 2, //LIMIT,
+	SENSOR = 3, //SENSOR,
+	speed = 4, //speed,
+	getPID = 5, //getPID,
+	enabledebug = 6, //enabledebug,
+	kError = 7, //kError,
+};
+
 //
-#define P_GAIN 0.1
-#define P_LIMIT 50
-#define D_GAIN 0.0007
-#define D_LIMIT 50
-#define I_GAIN 0.1
-#define I_LIMIT 50
-#define I_SUM_LIMIT 200
+float P_GAIN = 0.1;
+float P_LIMIT = 50;
+float D_GAIN = 0.0007;
+float D_LIMIT = 50;
+float I_GAIN = 0.4;
+float I_LIMIT = 200;
 
 #define TRIM_KNOB PF6
 #define GENERAL_KNOB PF7
 
 #define RIGHT_SENSOR PF1
-#define RIGHT_MAX 770.0
-#define RIGHT_MIN 19.0
+float RIGHT_MAX = 770.0;
+float RIGHT_MIN = 19.0;
 
 #define LEFT_SENSOR PF0
-#define LEFT_MAX 620.0
-#define LEFT_MIN 17.0
+float LEFT_MAX = 620.0;
+float LEFT_MIN = 17.0;
 
 #define RIGHT_MOTOR 1
 #define LEFT_MOTOR 0
 
-#define NORMAL_SPEED 100
+float NORMAL_SPEED = 255;
 
 linefollower::linefollower(LiquidCrystal *passed_crystal, motorClass *passed_motor)
 {
 	LCD = passed_crystal;
 	motor = passed_motor;
+
+	cmdMessenger.attach(OnUnknownCommand);
+	cmdMessenger.attach(GAIN, setgain);
+	cmdMessenger.attach(LIMIT, setlimit);
+	cmdMessenger.attach(SENSOR, setsensor);
+	cmdMessenger.attach(speed, setspeed);
+	cmdMessenger.attach(getPID, returnPID);
+	cmdMessenger.attach(enabledebug, toggledebug);
 }
 
 void linefollower::setup()
@@ -59,14 +79,16 @@ void linefollower::write_to_LCD(String line1, String line2)
 
 void linefollower::follow_line()
 {
+
+	cmdMessenger.feedinSerialData();
 	float right_read = analogRead(RIGHT_SENSOR);
 	float left_read = analogRead(LEFT_SENSOR);
 	right_read = map(right_read, RIGHT_MIN, RIGHT_MAX, 0, 1000);
 	left_read = map(left_read, LEFT_MIN, LEFT_MAX, 0, 1000);
 	float p_error = (left_read - right_read) * P_GAIN;
 	p_error = error_limit(p_error, P_LIMIT);
-	i_sum = error_limit(i_sum + left_read - right_read, I_SUM_LIMIT);
-	float i_error = error_limit(i_sum * I_GAIN, I_LIMIT);
+	i_sum = error_limit(i_sum + left_read - right_read, I_LIMIT);
+	float i_error = i_sum * I_GAIN;
 	float d_error = (left_read - right_read) - d_error_prev;
 	d_error = error_limit(d_error, D_LIMIT);
 
@@ -122,4 +144,90 @@ void linefollower::set_trim()
 {
 	int readvalue = analogRead(TRIM_KNOB);
 	trim = map(readvalue, 0, 1024, 50, -50);
+}
+
+void linefollower::setgain()
+{
+	char type = cmdMessenger.readCharArg();
+	if (type == 'P')
+	{
+		P_GAIN = cmdMessenger.readFloatArg();
+	}
+	if (type == 'I')
+	{
+		I_GAIN = cmdMessenger.readFloatArg();
+	}
+	if (type == 'D')
+	{
+		D_GAIN = cmdMessenger.readFloatArg();
+	}
+}
+void linefollower::setlimit()
+{
+	char type = cmdMessenger.readCharArg();
+	if (type == 'P')
+	{
+		P_LIMIT = cmdMessenger.readFloatArg();
+	}
+	if (type == 'I')
+	{
+		I_LIMIT = cmdMessenger.readFloatArg();
+	}
+	if (type == 'D')
+	{
+		D_LIMIT = cmdMessenger.readFloatArg();
+	}
+}
+void linefollower::setsensor()
+{
+	char dir = cmdMessenger.readCharArg();
+	if (dir == 'R')
+	{
+		char maxmin = cmdMessenger.readCharArg();
+		if (maxmin == 'X')
+		{
+			RIGHT_MAX = cmdMessenger.readInt16Arg();
+		}
+		if (maxmin == 'N')
+		{
+			RIGHT_MIN = cmdMessenger.readInt16Arg();
+		}
+	}
+	if (dir == 'L')
+	{
+		char maxmin = cmdMessenger.readCharArg();
+		if (maxmin == 'X')
+		{
+			LEFT_MAX = cmdMessenger.readInt16Arg();
+		}
+		if (maxmin == 'N')
+		{
+			LEFT_MIN = cmdMessenger.readInt16Arg();
+		}
+	}
+}
+void linefollower::setspeed()
+{
+	NORMAL_SPEED = cmdMessenger.readInt16Arg();
+}
+void linefollower::OnUnknownCommand()
+{
+	cmdMessenger.sendCmd(kError, "Command without attached callback");
+}
+void linefollower::toggledebug(){
+	debug = !debug;
+}
+void linefollower::returnPID(){
+	Serial.print("PGAIN: ");
+	Serial.print(P_GAIN);
+	Serial.print(" IGAIN: ");
+	Serial.print(I_GAIN);
+	Serial.print(" DGAIN: ");
+	Serial.print(D_GAIN);
+	Serial.print(" PLIMIT: ");
+	Serial.print(P_LIMIT);
+	Serial.print(" ILIMIT: ");
+	Serial.print(I_LIMIT);
+	Serial.print(" DLIMIT: ");
+	Serial.println(D_LIMIT);
 }

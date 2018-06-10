@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <LiquidCrystal.h>
 #include <motor.h>
+#include <CmdMessenger.h>
 
 #define TRIM_KNOB PF6
 
@@ -22,6 +23,14 @@ public:
 
 private:
 	int error_limit(int, int);
+	static void setgain();
+	static void setlimit();
+	static void setsensor();
+	static void setspeed();
+	static void setdebug();
+	static void returnPID();
+	static void toggledebug();
+	static void OnUnknownCommand();
 	motorClass *motor;
 	LiquidCrystal *LCD;
 	int trim;

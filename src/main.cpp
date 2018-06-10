@@ -1,21 +1,18 @@
 #include <phys253.h>
-#include "linefollower.h"
+//#include "linefollower.h"
 
-linefollower follower(&LCD, &motor);
+//linefollower follower(&LCD, &motor);
 
 void setup(void)
 {
 #include <phys253setup.txt>
-  Serial.begin(9600);
-  //follower.setup();
+Serial.begin(9600);
 }
 
 void loop(void)
 {
-  follower.follow_line();
-  follower.set_trim();
-  //follower.setup();
-  //Serial.print(analogRead(PF0));
-  //Serial.print(" ");
-  //Serial.println(analogRead(PF1));
+  motor.speed(0,map(analogRead(PF6),0,1024,-255,255));
+  RCServo0.write(map(analogRead(PF7),0,1024,0,180));
+  //follower.follow_line();
+  //follower.set_trim();
 }

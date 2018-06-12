@@ -1,18 +1,32 @@
 #include <phys253.h>
-//#include "linefollower.h"
+#include "linefollower.h"
+#include <Timer.h>
 
-//linefollower follower(&LCD, &motor);
+linefollower follower(&LCD, &motor);
+
+Timer main_timer;
+Timer secondary_timer;
+
+void main_tick()
+{
+  follower.follow_line();
+  follower.set_trim();
+}
+
+void secondary_tick()
+{
+  follower.evaluate_commands();
+}
 
 void setup(void)
 {
 #include <phys253setup.txt>
-Serial.begin(9600);
+  Serial.begin(9600);
+  main_timer.every(250, main_tick);
+  secondary_timer.every(100, secondary_tick);
 }
 
 void loop(void)
 {
-  motor.speed(0,map(analogRead(PF6),0,1024,-255,255));
-  RCServo0.write(map(analogRead(PF7),0,1024,0,180));
-  //follower.follow_line();
-  //follower.set_trim();
+  main_timer.update();
 }

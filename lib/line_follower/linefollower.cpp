@@ -9,22 +9,22 @@ CmdMessenger cmdMessenger = CmdMessenger(Serial);
 
 enum
 {
-	GAIN = 1, //GAIN,
-	LIMIT = 2, //LIMIT,
-	SENSOR = 3, //SENSOR,
-	speed = 4, //speed,
-	getPID = 5, //getPID,
+	GAIN = 1,		 //GAIN,
+	LIMIT = 2,		 //LIMIT,
+	SENSOR = 3,		 //SENSOR,
+	speed = 4,		 //speed,
+	getPID = 5,		 //getPID,
 	enabledebug = 6, //enabledebug,
-	kError = 7, //kError,
+	kError = 7,		 //kError,
 };
 
 //
 float P_GAIN = 0.1;
-float P_LIMIT = 50;
-float D_GAIN = 0.0007;
-float D_LIMIT = 50;
-float I_GAIN = 0.4;
-float I_LIMIT = 200;
+float P_LIMIT = 100;
+float D_GAIN = 0;
+float D_LIMIT = 0;
+float I_GAIN = 0;
+float I_LIMIT = 0;
 
 #define TRIM_KNOB PF6
 #define GENERAL_KNOB PF7
@@ -54,6 +54,7 @@ linefollower::linefollower(LiquidCrystal *passed_crystal, motorClass *passed_mot
 	cmdMessenger.attach(speed, setspeed);
 	cmdMessenger.attach(getPID, returnPID);
 	cmdMessenger.attach(enabledebug, toggledebug);
+	time = 0;
 }
 
 void linefollower::setup()
@@ -79,17 +80,21 @@ void linefollower::write_to_LCD(String line1, String line2)
 
 void linefollower::follow_line()
 {
-
-	cmdMessenger.feedinSerialData();
+	set_trim();
+	//Read the sensors
 	float right_read = analogRead(RIGHT_SENSOR);
 	float left_read = analogRead(LEFT_SENSOR);
+	//Map the sensor values
 	right_read = map(right_read, RIGHT_MIN, RIGHT_MAX, 0, 1000);
 	left_read = map(left_read, LEFT_MIN, LEFT_MAX, 0, 1000);
+	//Apply proportional gain
 	float p_error = (left_read - right_read) * P_GAIN;
 	p_error = error_limit(p_error, P_LIMIT);
-	i_sum = error_limit(i_sum + left_read - right_read, I_LIMIT);
+	//Apply/calculate integral
+	i_sum = error_limit(i_sum + (left_read - right_read) * (float)(millis() - time), I_LIMIT);
 	float i_error = i_sum * I_GAIN;
-	float d_error = (left_read - right_read) - d_error_prev;
+	//Apply/calculate derivitive
+	float d_error = (left_read - right_read) / (float)(millis() - time) - d_error_prev;
 	d_error = error_limit(d_error, D_LIMIT);
 
 	float error = p_error + i_error + d_error + trim;
@@ -115,16 +120,21 @@ void linefollower::follow_line()
 	}
 	if (debug)
 	{
-		Serial.print("RIGHT_SENSOR: " + String(right_read));
-		Serial.print(" LEFT_SENSOR: " + String(left_read));
-		Serial.print(" P_ERROR: " + String(p_error));
-		Serial.print(" I_ERROR: " + String(i_error));
-		Serial.print(" D_ERROR: " + String(d_error));
-		Serial.print(" RIGHT_MOTOR: " + String((int)(NORMAL_SPEED + error)));
-		Serial.print(" LEFT_MOTOR: " + String((int)(NORMAL_SPEED - error)));
+		Serial.print("R_S: " + String(right_read));
+		Serial.print(" L_S: " + String(left_read));
+		Serial.print(" P_E: " + String(p_error));
+		Serial.print(" I_E: " + String(i_error));
+		Serial.print(" D_E: " + String(d_error));
+		Serial.print(" R_M: " + String((int)(NORMAL_SPEED + error)));
+		Serial.print(" L_M: " + String((int)(NORMAL_SPEED - error)));
 		Serial.println(" TRIM: " + String(trim));
 	}
 	d_error_prev = left_read - right_read;
+	time = millis();
+}
+
+void linefollower::evaluate_commands(){
+	cmdMessenger.feedinSerialData();
 }
 
 int linefollower::error_limit(int value, int limit)
@@ -214,10 +224,12 @@ void linefollower::OnUnknownCommand()
 {
 	cmdMessenger.sendCmd(kError, "Command without attached callback");
 }
-void linefollower::toggledebug(){
+void linefollower::toggledebug()
+{
 	debug = !debug;
 }
-void linefollower::returnPID(){
+void linefollower::returnPID()
+{
 	Serial.print("PGAIN: ");
 	Serial.print(P_GAIN);
 	Serial.print(" IGAIN: ");

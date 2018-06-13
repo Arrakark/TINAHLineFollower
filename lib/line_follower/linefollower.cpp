@@ -30,12 +30,12 @@ float I_LIMIT = 0;
 #define GENERAL_KNOB PF7
 
 #define RIGHT_SENSOR PF1
-float RIGHT_MAX = 770.0;
-float RIGHT_MIN = 19.0;
+float RIGHT_MAX = 793.0;
+float RIGHT_MIN = 0.0;
 
 #define LEFT_SENSOR PF0
-float LEFT_MAX = 620.0;
-float LEFT_MIN = 17.0;
+float LEFT_MAX = 752.0;
+float LEFT_MIN = 0.0;
 
 #define RIGHT_MOTOR 1
 #define LEFT_MOTOR 0
@@ -120,8 +120,8 @@ void linefollower::follow_line()
 	}
 	if (debug)
 	{
-		Serial.print("R_S: " + String(right_read));
-		Serial.print(" L_S: " + String(left_read));
+		Serial.print("L_S: " + String(left_read));
+		Serial.print(" R_S: " + String(right_read));
 		Serial.print(" P_E: " + String(p_error));
 		Serial.print(" I_E: " + String(i_error));
 		Serial.print(" D_E: " + String(d_error));

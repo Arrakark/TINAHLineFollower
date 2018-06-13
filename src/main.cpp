@@ -29,4 +29,5 @@ void setup(void)
 void loop(void)
 {
   main_timer.update();
+  secondary_timer.update();
 }

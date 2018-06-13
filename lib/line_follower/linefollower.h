@@ -16,7 +16,7 @@ public:
 	void follow_line();
 	void set_trim();
 	void write_to_LCD(String, String);
-	void linefollower::evaluate_commands();
+	void evaluate_commands();
 private:
 	int error_limit(int, int);
 	static void setgain();
